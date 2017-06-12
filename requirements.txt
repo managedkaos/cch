@@ -1,0 +1,17 @@
+awscli==1.11.102
+boto3==1.4.4
+botocore==1.5.65
+cch==0.1.20
+click==6.7
+colorama==0.3.7
+docutils==0.14rc1
+future==0.16.0
+futures==3.1.1
+jmespath==0.9.3
+prettytable==0.7.2
+pyasn1==0.2.3
+python-dateutil==2.6.0
+PyYAML==3.12
+rsa==3.4.2
+s3transfer==0.1.10
+six==1.10.0

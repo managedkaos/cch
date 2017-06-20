@@ -210,11 +210,37 @@ def mkvm():
 
     print('Available security groups:',end='\n\t')
     print(*secgroup_names,sep='\n\t')
-    sys.stdout.write("Select security group [ENTER for no security group]: ")
-    selected_security_group_name=input()
 
-    sys.stdout.write("Enter root volume size in GBs: ")
-    selected_vol_size=input()
+    selected_security_group_name = secgroup_names[0]
+
+    while True:
+        sys.stdout.write("Select security group ['l' to list; ENTER for %s]: " % secgroup_names[0])
+        sg=input()
+        if sg.lower() == 'l':
+            print('Available security groups:',end='\n\t')
+            print(*secgroup_names,sep='\n\t')
+            continue
+        elif sg in secgroup_names:
+            selected_security_group_name = sg
+            break
+        elif not sg:
+            break
+        else:
+            print('Invalid security group.')
+            return
+   
+    while True:
+        sys.stdout.write("Enter root volume size in GBs: [Enter for 8 GB]: ")
+        vol_size=input()
+        if isinstance( vol_size, ( int, long ) ):
+            selected_vol_size = vol_size
+            break
+        elif not vol_size:
+            selected_vol_size = 8
+            break
+        else:
+            print('Not a good selection for volume size.')
+            return
 
     ami_id = get_region_specific_ami_id('ubuntu14')
 

@@ -248,19 +248,11 @@ def mkvm():
         print('We do not have Ubuntu image for this region')
         return
 
-    if not selected_security_group_name:
-        pass
-        #ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
-        #        MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
-        #        BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
-        #            'Ebs': {"VolumeSize": int(selected_vol_size)}}])
-    else:
-        pass
-        #ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
-        #        MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
-        #        BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
-        #            'Ebs': {"VolumeSize": int(selected_vol_size)}}],
-        #        SecurityGroupIds=[selected_security_group_name])
+    ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
+        MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
+        BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
+        'Ebs': {"VolumeSize": int(selected_vol_size)}}],
+        SecurityGroupIds=[selected_security_group_name])
 
 @click.command()
 def lskp():

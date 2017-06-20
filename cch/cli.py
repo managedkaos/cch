@@ -108,53 +108,95 @@ def lsvm(show_vol_info, filter_name):
 
 @click.command()
 def mkvm():
-    ec2 = get_connection()
+    # get a connection to ec2 or die
+    ec2 = boto3.client('ec2')
     if not ec2:
         return
 
-    flavor_names = ['t1.micro', 'm1.small', 'm1.medium', 'm1.large',
-            'm1.xlarge', 'm3.medium', 'm3.large', 'm3.xlarge', 'm3.2xlarge',
-            'm4.large', 'm4.xlarge', 'm4.2xlarge', 'm4.4xlarge', 'm4.10xlarge',
-            't2.micro', 't2.small', 't2.medium', 't2.large', 'm2.xlarge',
-            'm2.2xlarge', 'm2.4xlarge', 'cr1.8xlarge', 'i2.xlarge',
-            'i2.2xlarge', 'i2.4xlarge', 'i2.8xlarge', 'hi1.4xlarge',
-            'hs1.8xlarge', 'c1.medium', 'c1.xlarge', 'c3.large', 'c3.xlarge',
-            'c3.2xlarge', 'c3.4xlarge', 'c3.8xlarge', 'c4.large', 'c4.xlarge',
-            'c4.2xlarge', 'c4.4xlarge', 'c4.8xlarge', 'cc1.4xlarge',
-            'cc2.8xlarge', 'g2.2xlarge', 'cg1.4xlarge', 'r3.large',
-            'r3.xlarge', 'r3.2xlarge', 'r3.4xlarge', 'r3.8xlarge', 'd2.xlarge',
-            'd2.2xlarge', 'd2.4xlarge', 'd2.8xlarge']
+    # get the available regions for ec2 and save them as a list
+    region_names = []
+    regions = ec2.describe_regions()
 
-    print('Only Ubuntu image and Singapore region supported as of now')
-    print('Available flavors:', ' '.join(flavor_names))
-
-    selected_flavor=''
+    for region in regions['Regions']:
+        region_names.append(region['RegionName'])
+    
+    # prompt for a region, offering the current region as the default
+    selected_region = boto3.session.Session().region_name
+    
     while True:
-        sys.stdout.write("Select flavor ['l' to list]: ")
+        sys.stdout.write("Select region ['l' to list; ENTER to use default, %s]: " % selected_region)
+        region=input()
+        if region.lower() == 'l':
+            print("Available regions:",end='\n\t')
+            print(*region_names,sep='\n\t')
+            continue
+        elif region in region_names:
+            selected_region = region
+            break
+        elif not region:
+            break
+        else:
+            print('Invalid region.')
+            return
+
+    # define the available instance types (needs to be automated with a scraper)
+    flavor_names = ['t2.nano', 't2.micro', 't2.small', 't2.medium', 
+                    't2.large', 't2.xlarge', 't2.2xlarge', 'm4.large', 
+                    'm4.xlarge', 'm4.2xlarge', 'm4.4xlarge', 'm4.10xlarge', 
+                    'm4.16xlarge', 'm3.medium', 'm3.large', 'm3.xlarge', 
+                    'm3.2xlarge', 'c4.large', 'c4.xlarge', 'c4.2xlarge', 
+                    'c4.4xlarge', 'c4.8xlarge', 'c3.large', 'c3.xlarge', 
+                    'c3.2xlarge', 'c3.4xlarge', 'c3.8xlarge', 'p2.xlarge', 
+                    'p2.8xlarge', 'p2.16xlarge', 'g2.2xlarge', 'g2.8xlarge', 
+                    'x1.16large', 'x1.32xlarge', 'r4.large', 'r4.xlarge', 
+                    'r4.2xlarge', 'r4.4xlarge', 'r4.8xlarge', 'r4.16xlarge', 
+                    'r3.large', 'r3.xlarge', 'r3.2xlarge', 'r3.4xlarge', 
+                    'r3.8xlarge', 'i3.large', 'i3.xlarge', 'i3.2xlarge', 
+                    'i3.4xlarge', 'i3.8xlarge', 'i3.16large', 'd2.xlarge', 
+                    'd2.2xlarge', 'd2.4xlarge', 'd2.8xlarge', 'f1.2xlarge', 
+                    'f1.16xlarge']
+
+    # prompt for a flavor, offering an acceptable default
+    selected_flavor = 't2.micro'
+    
+    while True:
+        sys.stdout.write("Select flavor ['l' to list; ENTER to use default, %s]: " % selected_flavor)
         flavor=input()
         if flavor.lower() == 'l':
-            print(flavor_names)
+            print("Available flavors:",end='\n\t')
+            print(*flavor_names,sep='\n\t')
             continue
         elif flavor in flavor_names:
-            selected_flavor=flavor
+            selected_flavor = flavor
+            break
+        elif not flavor:
             break
         else:
             print('Invalid flavor name.')
+            return
 
-    keypairs = ec2.key_pairs.all()
-    keypair_names = [kp.name for kp in keypairs]
-    print('Available key pairs:', ' '.join(keypair_names))
-    sys.stdout.write("Select keypair: ")
+    # get the available keys
+    keypair_names = []
+    keypairs = ec2.describe_key_pairs()
+
+    for key in keypairs['KeyPairs']:
+        keypair_names.append(key['KeyName'])
+
+    print('Available key pairs:',end='\n\t')
+    print(*keypair_names,sep='\n\t')
+    sys.stdout.write("Select keypair [ENTER for no keypair]: ")
     selected_keypair=input()
 
-    secgroups = list(ec2.security_groups.all())
-    secgroup_name_id_dict = {}
-    for sg in secgroups:
-        secgroup_name_id_dict[sg.group_name] = sg.id
-    secgroup_names = [sg.group_name for sg in secgroups]
+    # get the available security groups
+    secgroup_names = []
+    secgroups = ec2.describe_security_groups()
+    
+    for sg in secgroups['SecurityGroups']:
+        secgroup_names.append(sg['GroupName'])
 
-    print('Available security groups:\n    ', '\t'.join(secgroup_names))
-    sys.stdout.write("Select security group [empty for no security group]: ")
+    print('Available security groups:',end='\n\t')
+    print(*secgroup_names,sep='\n\t')
+    sys.stdout.write("Select security group [ENTER for no security group]: ")
     selected_security_group_name=input()
 
     sys.stdout.write("Enter root volume size in GBs: ")
@@ -167,17 +209,16 @@ def mkvm():
         return
 
     if not selected_security_group_name:
-        ec2.create_instances(DryRun=False, ImageId=ami_id, MinCount=1,
-                MaxCount=1, KeyName=selected_keypair, InstanceType=flavor,
+        ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
+                MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
                 BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
                     'Ebs': {"VolumeSize": int(selected_vol_size)}}])
     else:
-        ec2.create_instances(DryRun=False, ImageId=ami_id, MinCount=1,
-                MaxCount=1, KeyName=selected_keypair, InstanceType=flavor,
+        ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
+                MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
                 BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
                     'Ebs': {"VolumeSize": int(selected_vol_size)}}],
-                SecurityGroupIds=[
-                    secgroup_name_id_dict[selected_security_group_name]])
+                SecurityGroupIds=[selected_security_group_name])
 
 @click.command()
 def lskp():

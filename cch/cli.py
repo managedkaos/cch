@@ -184,8 +184,22 @@ def mkvm():
 
     print('Available key pairs:',end='\n\t')
     print(*keypair_names,sep='\n\t')
-    sys.stdout.write("Select keypair [ENTER for no keypair]: ")
-    selected_keypair=input()
+
+    while True:
+        sys.stdout.write("Select keypair ['l' to list; ENTER for %s]: " % keypair_names[0])
+        keypair=input()
+        if keypair.lower() == 'l':
+            print('Available key pairs:',end='\n\t')
+            print(*keypair_names,sep='\n\t')
+            continue
+        elif keypair in keypair_names:
+            selected_keypair = keypair
+            break
+        elif not keypair:
+            break
+        else:
+            print('Invalid keypair.')
+            return
 
     # get the available security groups
     secgroup_names = []
@@ -209,16 +223,18 @@ def mkvm():
         return
 
     if not selected_security_group_name:
-        ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
-                MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
-                BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
-                    'Ebs': {"VolumeSize": int(selected_vol_size)}}])
+        pass
+        #ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
+        #        MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
+        #        BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
+        #            'Ebs': {"VolumeSize": int(selected_vol_size)}}])
     else:
-        ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
-                MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
-                BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
-                    'Ebs': {"VolumeSize": int(selected_vol_size)}}],
-                SecurityGroupIds=[selected_security_group_name])
+        pass
+        #ec2.run_instances(DryRun=False, ImageId=ami_id, MinCount=1,
+        #        MaxCount=1, KeyName=selected_keypair, InstanceType=selected_flavor,
+        #        BlockDeviceMappings=[{'DeviceName': '/dev/sda1',
+        #            'Ebs': {"VolumeSize": int(selected_vol_size)}}],
+        #        SecurityGroupIds=[selected_security_group_name])
 
 @click.command()
 def lskp():

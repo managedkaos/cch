@@ -124,7 +124,7 @@ def mkvm():
     selected_region = boto3.session.Session().region_name
     
     while True:
-        sys.stdout.write("Select region ['l' to list; ENTER to use default, %s]: " % selected_region)
+        sys.stdout.write("Select region ['l' to list; ENTER to use %s]: " % selected_region)
         region=input()
         if region.lower() == 'l':
             print("Available regions:",end='\n\t')
@@ -132,11 +132,75 @@ def mkvm():
             continue
         elif region in region_names:
             selected_region = region
+            # get a new ec2 client in the new region
+            ec2 = boto3.client('ec2', region_name=selected_region)
             break
         elif not region:
             break
         else:
             print('Invalid region.')
+            return
+
+    # get the available keys in this region
+    keypair_names = []
+    keypairs = ec2.describe_key_pairs()
+
+    for key in keypairs['KeyPairs']:
+        keypair_names.append(key['KeyName'])
+
+    if not keypair_names:
+        print("There are no keys in %s; create a keypair with 'mkkp'" % selected_region)
+        return
+
+    print('Available key pairs:',end='\n\t')
+    print(*keypair_names,sep='\n\t')
+
+    while True:
+        sys.stdout.write("Select keypair ['l' to list; ENTER for %s]: " % keypair_names[0])
+        keypair=input()
+        if keypair.lower() == 'l':
+            print('Available key pairs:',end='\n\t')
+            print(*keypair_names,sep='\n\t')
+            continue
+        elif keypair in keypair_names:
+            selected_keypair = keypair
+            break
+        elif not keypair:
+            break
+        else:
+            print('Invalid keypair.')
+            return
+
+    # get the available security groups
+    secgroup_names = []
+    secgroups = ec2.describe_security_groups()
+    
+    for sg in secgroups['SecurityGroups']:
+        secgroup_names.append(sg['GroupName'])
+
+    if not secgroup_names:
+        print("There are no security groups in this region; create a keypair with 'mksg'")
+        return
+
+    print('Available security groups:',end='\n\t')
+    print(*secgroup_names,sep='\n\t')
+
+    selected_security_group_name = secgroup_names[0]
+
+    while True:
+        sys.stdout.write("Select security group ['l' to list; ENTER for %s]: " % secgroup_names[0])
+        sg=input()
+        if sg.lower() == 'l':
+            print('Available security groups:',end='\n\t')
+            print(*secgroup_names,sep='\n\t')
+            continue
+        elif sg in secgroup_names:
+            selected_security_group_name = sg
+            break
+        elif not sg:
+            break
+        else:
+            print('Invalid security group.')
             return
 
     # define the available instance types (needs to be automated with a scraper)
@@ -175,60 +239,6 @@ def mkvm():
             print('Invalid flavor name.')
             return
 
-    # get the available keys
-    keypair_names = []
-    keypairs = ec2.describe_key_pairs()
-
-    for key in keypairs['KeyPairs']:
-        keypair_names.append(key['KeyName'])
-
-    print('Available key pairs:',end='\n\t')
-    print(*keypair_names,sep='\n\t')
-
-    while True:
-        sys.stdout.write("Select keypair ['l' to list; ENTER for %s]: " % keypair_names[0])
-        keypair=input()
-        if keypair.lower() == 'l':
-            print('Available key pairs:',end='\n\t')
-            print(*keypair_names,sep='\n\t')
-            continue
-        elif keypair in keypair_names:
-            selected_keypair = keypair
-            break
-        elif not keypair:
-            break
-        else:
-            print('Invalid keypair.')
-            return
-
-    # get the available security groups
-    secgroup_names = []
-    secgroups = ec2.describe_security_groups()
-    
-    for sg in secgroups['SecurityGroups']:
-        secgroup_names.append(sg['GroupName'])
-
-    print('Available security groups:',end='\n\t')
-    print(*secgroup_names,sep='\n\t')
-
-    selected_security_group_name = secgroup_names[0]
-
-    while True:
-        sys.stdout.write("Select security group ['l' to list; ENTER for %s]: " % secgroup_names[0])
-        sg=input()
-        if sg.lower() == 'l':
-            print('Available security groups:',end='\n\t')
-            print(*secgroup_names,sep='\n\t')
-            continue
-        elif sg in secgroup_names:
-            selected_security_group_name = sg
-            break
-        elif not sg:
-            break
-        else:
-            print('Invalid security group.')
-            return
-   
     while True:
         sys.stdout.write("Enter root volume size in GBs: [Enter for 8 GB]: ")
         vol_size=input()
